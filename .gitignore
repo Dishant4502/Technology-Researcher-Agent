@@ -6,4 +6,4 @@ frontend/node_modules/
 frontend/dist/
 backend/knowledge_repo/index.json
 backend/knowledge_repo/*.md
-frontend/.env.example/
+frontend/.env
