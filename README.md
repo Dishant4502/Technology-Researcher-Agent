@@ -48,6 +48,8 @@ Start the API:
 uvicorn app.main:app --reload --port 8000
 ```
 
+Open `http://localhost:8000/docs` to verify the backend is running. The backend does not render the React UI.
+
 ### 2. Frontend
 
 ```powershell
@@ -55,6 +57,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+Open the UI at `http://localhost:5173`.
 
 If your API is not at `http://localhost:8000`, create `frontend/.env` with:
 
