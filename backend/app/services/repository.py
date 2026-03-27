@@ -36,7 +36,7 @@ class KnowledgeRepository:
             query=query,
             summary=summary,
             created_at=created_at,
-            file_path=str(file_path),
+            file_path=file_path.name,
             sources=sources,
         )
         index = self.list_entries()
@@ -47,9 +47,10 @@ class KnowledgeRepository:
     def list_entries(self) -> list[KnowledgeEntry]:
         raw = json.loads(INDEX_FILE.read_text(encoding="utf-8"))
         entries = [KnowledgeEntry.model_validate(item) for item in raw]
-        trimmed_entries = entries[: self.settings.knowledge_retention_limit]
+        valid_entries = [entry for entry in entries if self._resolve_entry_path(entry).exists()]
+        trimmed_entries = valid_entries[: self.settings.knowledge_retention_limit]
         if len(trimmed_entries) != len(entries):
-            self._remove_stale_files(entries[self.settings.knowledge_retention_limit :])
+            self._remove_stale_files(valid_entries[self.settings.knowledge_retention_limit :])
             self._write_index(trimmed_entries)
         return trimmed_entries
 
@@ -57,7 +58,7 @@ class KnowledgeRepository:
         for entry in self.list_entries():
             if entry.entry_id != entry_id:
                 continue
-            path = Path(entry.file_path)
+            path = self._resolve_entry_path(entry)
             if not path.exists():
                 return None
             full_text = path.read_text(encoding="utf-8")
@@ -92,7 +93,7 @@ class KnowledgeRepository:
     def _remove_stale_files(stale_entries: list[KnowledgeEntry]) -> None:
         repo_root = KNOWLEDGE_REPO_DIR.resolve()
         for stale in stale_entries:
-            stale_path = Path(stale.file_path)
+            stale_path = KnowledgeRepository._resolve_entry_path(stale)
             try:
                 resolved = stale_path.resolve()
                 resolved.relative_to(repo_root)
@@ -129,3 +130,12 @@ class KnowledgeRepository:
         if end == -1:
             return report_plus_tail.strip()
         return report_plus_tail[:end].strip()
+
+    @staticmethod
+    def _resolve_entry_path(entry: KnowledgeEntry) -> Path:
+        stored_path = Path(entry.file_path)
+        if stored_path.is_absolute():
+            if stored_path.exists():
+                return stored_path
+            return KNOWLEDGE_REPO_DIR / f"{entry.entry_id}.md"
+        return KNOWLEDGE_REPO_DIR / stored_path
