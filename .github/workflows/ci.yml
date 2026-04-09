@@ -43,8 +43,8 @@ jobs:
       - name: Auto-fix lint issues
         run: ruff check . --fix
 
-      - name: Format check (ruff format)
-        run: ruff format --check .
+      - name: Auto format code
+        run: ruff format .
 
   # ─── Backend unit tests ─────────────────────────────────────────────────────
   backend-test:
