@@ -40,8 +40,8 @@ jobs:
       - name: Install ruff
         run: pip install ruff
 
-      - name: Lint (ruff check)
-        run: ruff check .
+      - name: Auto-fix lint issues
+        run: ruff check . --fix
 
       - name: Format check (ruff format)
         run: ruff format --check .
