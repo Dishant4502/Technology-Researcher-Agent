@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     allowed_origins: str = Field(default="http://localhost:5173")
     research_max_sources: int = Field(default=6)
     knowledge_retention_limit: int = Field(default=8)
+    knowledge_retention_limit: int = 10
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
