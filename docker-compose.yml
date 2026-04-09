@@ -1,0 +1,65 @@
+# docker-compose.yml – local development & self-hosted VPS production
+# ─────────────────────────────────────────────────────────────────────────────
+# Usage:
+#   Local dev:   docker compose up
+#   Production:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+    image: tech-researcher-backend:local
+    container_name: tech-researcher-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env          # never commit this file
+    environment:
+      - ALLOWED_ORIGINS=http://localhost,http://frontend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist generated knowledge reports between container restarts
+      - knowledge_repo:/app/knowledge_repo
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - app-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        VITE_API_BASE: http://localhost:8000/api
+    image: tech-researcher-frontend:local
+    container_name: tech-researcher-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app-net
+
+volumes:
+  knowledge_repo:
+    driver: local
+
+networks:
+  app-net:
+    driver: bridge

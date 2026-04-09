@@ -8,3 +8,10 @@ duckduckgo-search>=8,<9
 tavily-python>=0.5,<1
 pydantic-settings>=2.8,<3
 python-slugify>=8,<9
+
+# ── Test / Dev dependencies (also used in CI) ─────────────────────────────────
+pytest>=8,<9
+pytest-cov>=6,<7
+pytest-asyncio>=0.25,<1
+httpx>=0.28,<1
+ruff>=0.9,<1

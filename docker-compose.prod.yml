@@ -1,0 +1,28 @@
+# docker-compose.prod.yml – production overrides
+# Merge with base file: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+services:
+  backend:
+    image: ghcr.io/${GITHUB_ACTOR}/tech-researcher-backend:${IMAGE_TAG:-latest}
+    build: !reset null     # use pre-built image in production, not local build
+    environment:
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 30s
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+
+  frontend:
+    image: ghcr.io/${GITHUB_ACTOR}/tech-researcher-frontend:${IMAGE_TAG:-latest}
+    build: !reset null
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback

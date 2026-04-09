@@ -1,0 +1,42 @@
+# ── Python artefacts ───────────────────────────
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.spec
+
+# ── Test / coverage ────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.junit.xml
+
+# ── Environment & secrets ──────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Knowledge repository (runtime data) ────────
+knowledge_repo/
+knowledge_repo/**
+
+# ── OS artefacts ──────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+
+# ── Linting / type-check caches ───────────────
+.mypy_cache/
+.ruff_cache/

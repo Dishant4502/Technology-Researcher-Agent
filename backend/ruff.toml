@@ -1,0 +1,20 @@
+version = "0.1.0"
+target-version = "py312"
+
+[lint]
+# Rules: E/W = pycodestyle, F = pyflakes, I = isort, B = bugbear, UP = pyupgrade
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore  = [
+    "E501",   # line-length – handled by formatting, not lint
+]
+
+[lint.per-file-ignores]
+# Allow unused imports in __init__ re-export files
+"__init__.py" = ["F401"]
+# Relax in test files
+"tests/**" = ["S101", "ANN"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending  = "lf"

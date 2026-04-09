@@ -1,0 +1,268 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CD – Build, push Docker images, and deploy to production
+# Triggered only on merges / pushes to `main`
+# ─────────────────────────────────────────────────────────────────────────────
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # allow manual trigger from GitHub UI
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false   # never cancel an in-flight deploy
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ${{ github.repository_owner }}/tech-researcher-backend
+  FRONTEND_IMAGE: ${{ github.repository_owner }}/tech-researcher-frontend
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+jobs:
+  # ─── 1. Full test gate (re-run to confirm main is green) ────────────────────
+  test-gate:
+    name: "Test Gate"
+    uses: ./.github/workflows/ci.yml
+
+  # ─── 2. Build & push backend image ─────────────────────────────────────────
+  build-backend:
+    name: "Build · Backend Docker Image"
+    runs-on: ubuntu-latest
+    needs: test-gate
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-digest: ${{ steps.push.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+
+      - name: Build and push backend
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+  # ─── 3. Build & push frontend image ────────────────────────────────────────
+  build-frontend:
+    name: "Build · Frontend Docker Image"
+    runs-on: ubuntu-latest
+    needs: test-gate
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-digest: ${{ steps.push.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push frontend
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          build-args: |
+            VITE_API_BASE=${{ vars.VITE_API_BASE }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+  # ─── 4. Deploy to production ────────────────────────────────────────────────
+  deploy:
+    name: "Deploy · Production"
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    environment: production   # requires manual approval gate in GitHub UI
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Option A: render.com (webhook deploy) ──────────────────────────────
+      # Comment out the block below and uncomment Option B for EC2 deployment.
+      - name: Trigger Render deploy – backend
+        run: |
+          curl -sS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}" \
+               -H "Accept: application/json" \
+               --fail-with-body
+        env:
+          RENDER_DEPLOY_HOOK_BACKEND: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+
+      - name: Trigger Render deploy – frontend
+        run: |
+          curl -sS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}" \
+               -H "Accept: application/json" \
+               --fail-with-body
+        env:
+          RENDER_DEPLOY_HOOK_FRONTEND: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
+
+      # ── Option B: SSH to EC2 and pull new image ────────────────────────────
+      # Uncomment the block below to switch to EC2 deployment.
+      #
+      # - name: Deploy to AWS EC2 via SSH
+      #   uses: appleboy/ssh-action@v1.2.0
+      #   with:
+      #     host:        ${{ secrets.EC2_HOST }}
+      #     username:    ${{ secrets.EC2_USER }}
+      #     key:         ${{ secrets.EC2_SSH_KEY }}
+      #     fingerprint: ${{ secrets.EC2_HOST_FINGERPRINT }}
+      #     script: |
+      #       set -e
+      #       echo "${{ secrets.GITHUB_TOKEN }}" | \
+      #         docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      #
+      #       IMAGE_BACKEND="${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-backend.outputs.image-tag }}"
+      #       IMAGE_FRONTEND="${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest"
+      #
+      #       docker pull "$IMAGE_BACKEND"
+      #       docker pull "$IMAGE_FRONTEND"
+      #
+      #       # Zero-downtime blue-green swap
+      #       docker service update \
+      #         --image "$IMAGE_BACKEND" \
+      #         --update-delay 10s \
+      #         --update-failure-action rollback \
+      #         tech-researcher_backend
+      #
+      #       docker service update \
+      #         --image "$IMAGE_FRONTEND" \
+      #         --update-delay 10s \
+      #         --update-failure-action rollback \
+      #         tech-researcher_frontend
+
+  # ─── 5. Post-deploy smoke test ──────────────────────────────────────────────
+  smoke-test:
+    name: "Smoke Test · Production Health"
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Wait for service warm-up
+        run: sleep 30
+
+      - name: Health check – backend
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ vars.PRODUCTION_API_URL }}/health")
+          echo "HTTP status: $HTTP_STATUS"
+          [ "$HTTP_STATUS" -eq 200 ] || exit 1
+
+  # ─── 6. Automatic rollback on smoke-test failure ────────────────────────────
+  rollback:
+    name: "Rollback · On Smoke-Test Failure"
+    runs-on: ubuntu-latest
+    needs: smoke-test
+    if: failure()   # only runs when smoke-test job fails
+    steps:
+      - name: Rollback Render – backend
+        run: |
+          echo "Smoke test failed – triggering rollback for backend service"
+          curl -sS -X POST "${{ secrets.RENDER_ROLLBACK_HOOK_BACKEND }}" \
+               -H "Accept: application/json" || true
+
+      - name: Rollback Render – frontend
+        run: |
+          echo "Smoke test failed – triggering rollback for frontend service"
+          curl -sS -X POST "${{ secrets.RENDER_ROLLBACK_HOOK_FRONTEND }}" \
+               -H "Accept: application/json" || true
+
+      - name: Notify Slack on rollback
+        if: always()
+        uses: slackapi/slack-github-action@v2.1.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🚨 *Production Rollback Triggered*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🚨 *Production deployment of <${{ github.server_url }}/${{ github.repository }}|tech-researcher> failed smoke tests and was rolled back.*\n\n*Commit:* `${{ github.sha }}`\n*Author:* ${{ github.actor }}\n*Branch:* `${{ github.ref_name }}`"
+                  }
+                }
+              ]
+            }
+
+  # ─── 7. Slack success notification ─────────────────────────────────────────
+  notify-success:
+    name: "Notify · Deployment Success"
+    runs-on: ubuntu-latest
+    needs: smoke-test
+    if: success()
+    steps:
+      - name: Notify Slack on success
+        uses: slackapi/slack-github-action@v2.1.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "✅ *Production Deployment Successful*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "✅ *tech-researcher* deployed successfully to production.\n\n*Commit:* `${{ github.sha }}`\n*Author:* ${{ github.actor }}\n*Image tag:* `${{ needs.build-backend.outputs.image-tag }}`"
+                  }
+                }
+              ]
+            }

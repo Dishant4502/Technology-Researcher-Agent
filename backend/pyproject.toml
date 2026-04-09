@@ -1,0 +1,28 @@
+[tool.pytest.ini_options]
+minversion   = "7.0"
+testpaths    = ["tests"]
+addopts      = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=xml:coverage.xml",
+    "--cov-fail-under=50",
+]
+markers = [
+    "unit: fast, dependency-free tests",
+    "integration: tests that call external services",
+]
+
+[tool.coverage.run]
+source  = ["app"]
+omit    = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
