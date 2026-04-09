@@ -22,7 +22,9 @@ class Settings(BaseSettings):
     allowed_origins: str = Field(default="http://localhost:5173")
     research_max_sources: int = Field(default=6)
     knowledge_retention_limit: int = 10
-    
+
+    # 👇 ADD THIS LINE (IMPORTANT FIX)
+    model_config = {"extra": "allow"}
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
@@ -57,3 +59,5 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     KNOWLEDGE_REPO_DIR.mkdir(parents=True, exist_ok=True)
     return Settings()
+
+Settings.knowledge_retention_limit = 10
