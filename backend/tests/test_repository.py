@@ -60,7 +60,7 @@ class TestKnowledgeRepository:
 
     def test_index_file_initialised_as_empty(self, tmp_repo):
         tmp_path, Repo = tmp_repo
-        repo = Repo()
+        Repo()  # just call, no assignment
         index_file = tmp_path / "index.json"
         assert index_file.exists()
         assert json.loads(index_file.read_text()) == []
