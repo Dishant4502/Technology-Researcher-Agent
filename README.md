@@ -87,3 +87,7 @@ Example request:
 - The backend is written to support current web search through LangChain tools and report synthesis through CrewAI.
 - The repository intentionally stores plain markdown files so results stay auditable and easy to reuse.
 - For production, add authentication, rate limiting, richer markdown rendering, and source deduplication.
+
+## CI/CD
+ci-cd implemented succesfully
+
