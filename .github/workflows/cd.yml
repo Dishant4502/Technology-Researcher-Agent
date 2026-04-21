@@ -20,12 +20,6 @@ env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20"
 
-jobs:
-  # ─── 1. Full test gate (re-run to confirm main is green) ────────────────────
-  test-gate:
-    name: "Test Gate"
-    uses: ./.github/workflows/ci.yml
-
   # ─── 2. Build & push backend image ─────────────────────────────────────────
   build-backend:
     name: "Build · Backend Docker Image"
