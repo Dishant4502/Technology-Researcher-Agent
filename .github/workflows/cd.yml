@@ -20,6 +20,7 @@ env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20"
 
+jobs: #
   # ─── 2. Build & push backend image ─────────────────────────────────────────
   build-backend:
     name: "Build · Backend Docker Image"
