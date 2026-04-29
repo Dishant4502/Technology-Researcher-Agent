@@ -42,3 +42,51 @@ export async function runResearch(payload) {
   }
   return response.json();
 }
+
+export async function uploadPdf(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE}/rag/upload`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let message = "Document upload failed.";
+    try {
+      const data = await response.json();
+      if (typeof data?.detail === "string" && data.detail.trim()) {
+        message = data.detail;
+      }
+    } catch {
+      // Fallback
+    }
+    throw new Error(message);
+  }
+  return response.json();
+}
+
+export async function chatRag(query) {
+  const response = await fetch(`${API_BASE}/rag/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query }),
+  });
+
+  if (!response.ok) {
+    let message = "Chat request failed.";
+    try {
+      const data = await response.json();
+      if (typeof data?.detail === "string" && data.detail.trim()) {
+        message = data.detail;
+      }
+    } catch {
+      // Fallback
+    }
+    throw new Error(message);
+  }
+  return response.json();
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState, startTransition } from "react";
 
 import { KnowledgeList } from "./components/KnowledgeList";
+import { RagChat } from "./components/RagChat";
 import { ReportView } from "./components/ReportView";
 import { ResearchForm } from "./components/ResearchForm";
 import { fetchEntries, fetchEntry, runResearch } from "./lib/api";
@@ -11,6 +12,7 @@ const initialForm = {
 };
 
 export default function App() {
+  const [mode, setMode] = useState("research"); // "research" or "rag"
   const [form, setForm] = useState(initialForm);
   const [entries, setEntries] = useState([]);
   const [result, setResult] = useState(null);
@@ -80,6 +82,20 @@ export default function App() {
   return (
     <main className="app-shell">
       <aside className="sidebar">
+        <div className="mode-toggle">
+          <button
+            className={`toggle-btn ${mode === "research" ? "active" : ""}`}
+            onClick={() => setMode("research")}
+          >
+            Research Agent
+          </button>
+          <button
+            className={`toggle-btn ${mode === "rag" ? "active" : ""}`}
+            onClick={() => setMode("rag")}
+          >
+            Document Chat
+          </button>
+        </div>
         <button className="new-chat-button" type="button" onClick={handleNewResearch}>
           + New Research
         </button>
@@ -92,12 +108,18 @@ export default function App() {
           <p>Autonomous market intelligence workspace</p>
         </header>
 
-        <div className="conversation-area">
-          {error ? <div className="error-banner">{error}</div> : null}
-          <ReportView result={result} />
-        </div>
+        {mode === "research" ? (
+          <>
+            <div className="conversation-area">
+              {error ? <div className="error-banner">{error}</div> : null}
+              <ReportView result={result} />
+            </div>
 
-        <ResearchForm form={form} onChange={handleChange} onSubmit={handleSubmit} isLoading={isLoading} />
+            <ResearchForm form={form} onChange={handleChange} onSubmit={handleSubmit} isLoading={isLoading} />
+          </>
+        ) : (
+          <RagChat />
+        )}
       </section>
     </main>
   );

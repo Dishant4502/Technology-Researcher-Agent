@@ -1,9 +1,10 @@
 .venv/
 backend/.env
-backend/__pycache__/
-backend/app/__pycache__/
+**/__pycache__/
+*.pyc
 frontend/node_modules/
 frontend/dist/
 backend/knowledge_repo/index.json
 backend/knowledge_repo/*.md
+backend/knowledge_repo/vector_db/
 frontend/.env

@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 
 from app.config import get_settings
 from app.routes.research import router as research_router
+from app.routes.rag import router as rag_router
 
 
 settings = get_settings()
@@ -29,3 +30,4 @@ def healthcheck() -> dict[str, str]:
 
 
 app.include_router(research_router, prefix=settings.api_prefix)
+app.include_router(rag_router, prefix=settings.api_prefix)

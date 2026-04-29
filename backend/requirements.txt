@@ -4,10 +4,16 @@ crewai>=1.11,<2
 langchain-openai>=0.3,<1
 langchain-community>=0.3,<1
 langchain-tavily>=0.1,<1
-duckduckgo-search>=8,<9
+ddgs>=9,<10
 tavily-python>=0.5,<1
 pydantic-settings>=2.8,<3
 python-slugify>=8,<9
+chromadb>=1.1.0,<2
+langchain-chroma>=0.1.0,<1
+pypdf>=4.0.0,<5
+python-multipart>=0.0.9,<1
+langchain-huggingface>=0.0.3,<1
+sentence-transformers>=3.0.0,<4
 
 # ── Test / Dev dependencies (also used in CI) ─────────────────────────────────
 pytest>=8,<9
