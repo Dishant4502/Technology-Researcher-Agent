@@ -15,8 +15,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ${{ github.repository_owner }}/tech-researcher-backend
-  FRONTEND_IMAGE: ${{ github.repository_owner }}/tech-researcher-frontend
+  BACKEND_IMAGE: dishant4502/tech-researcher-backend
+  FRONTEND_IMAGE: dishant4502/tech-researcher-frontend
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "20"
 
@@ -178,50 +178,24 @@ jobs: #
             echo "${{ secrets.GITHUB_TOKEN }}" | \
               docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            echo "Pulling latest backend image..."
-            # docker pull ghcr.io/${{ github.repository_owner }}/tech-researcher-backend:latest
-            docker pull ghcr.io/dishant4502/tech-researcher-backend:latest
+            IMAGE_BACKEND="ghcr.io/dishant4502/tech-researcher-backend:latest"
+            IMAGE_FRONTEND="ghcr.io/dishant4502/tech-researcher-frontend:latest"
 
-            echo "Stopping old container..."
+            echo "Pulling images..."
+            docker pull $IMAGE_BACKEND
+            docker pull $IMAGE_FRONTEND
+
+            echo "Stopping old containers..."
             docker stop backend || true
             docker rm backend || true
+            docker stop frontend || true
+            docker rm frontend || true
 
-            echo "Starting new container..."
-            docker run -d -p 8000:8000 --name backend \
-              ghcr.io/${{ github.repository_owner }}/tech-researcher-backend:latest
-          
-            # Zero-downtime blue-green swap
-            # docker service update \
-            #   --image "$IMAGE_BACKEND" \
-            #   --update-delay 10s \
-            #   --update-failure-action rollback \
-            #   tech-researcher_backend
-      
-            # docker service update \
-            #   --image "$IMAGE_FRONTEND" \
-            #   --update-delay 10s \
-            #   --update-failure-action rollback \
-            #   tech-researcher_frontend
-            script: |
-              set -e
+            echo "Starting backend..."
+            docker run -d -p 8000:8000 --name backend $IMAGE_BACKEND
 
-              echo "${{ secrets.GITHUB_TOKEN }}" | \
-                docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-              IMAGE_BACKEND="ghcr.io/${{ github.repository_owner }}/tech-researcher-backend:latest"
-              IMAGE_FRONTEND="ghcr.io/${{ github.repository_owner }}/tech-researcher-frontend:latest"
-
-              # Backend
-              docker stop backend || true
-              docker rm backend || true
-              docker run -d -p 8000:8000 --name backend \
-                "$IMAGE_BACKEND"
-
-              # Frontend
-              docker stop frontend || true
-              docker rm frontend || true
-              docker run -d -p 3000:3000 --name frontend \
-                "$IMAGE_FRONTEND"
+            echo "Starting frontend..."
+            docker run -d -p 3000:3000 --name frontend $IMAGE_FRONTEND
 
   # ─── 5. Post-deploy smoke test ──────────────────────────────────────────────
   smoke-test:
