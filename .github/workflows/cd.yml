@@ -129,21 +129,21 @@ jobs: #
 
       # ── Option A: render.com (webhook deploy) ──────────────────────────────
       # Comment out the block below and uncomment Option B for EC2 deployment.
-      - name: Trigger Render deploy – backend
-        run: |
-          curl -sS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}" \
-               -H "Accept: application/json" \
-               --fail-with-body
-        env:
-          RENDER_DEPLOY_HOOK_BACKEND: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+      # - name: Trigger Render deploy – backend
+      #   run: |
+      #     curl -sS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}" \
+      #          -H "Accept: application/json" \
+      #          --fail-with-body
+      #   env:
+      #     RENDER_DEPLOY_HOOK_BACKEND: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
 
-      - name: Trigger Render deploy – frontend
-        run: |
-          curl -sS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}" \
-               -H "Accept: application/json" \
-               --fail-with-body
-        env:
-          RENDER_DEPLOY_HOOK_FRONTEND: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
+      # - name: Trigger Render deploy – frontend
+      #   run: |
+      #     curl -sS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}" \
+      #          -H "Accept: application/json" \
+      #          --fail-with-body
+      #   env:
+      #     RENDER_DEPLOY_HOOK_FRONTEND: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
 
       # ── Option B: SSH to EC2 and pull new image ────────────────────────────
       # Uncomment the block below to switch to EC2 deployment.
@@ -159,25 +159,68 @@ jobs: #
       #       set -e
       #       echo "${{ secrets.GITHUB_TOKEN }}" | \
       #         docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      #
+      
       #       IMAGE_BACKEND="${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-backend.outputs.image-tag }}"
       #       IMAGE_FRONTEND="${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest"
-      #
+      
       #       docker pull "$IMAGE_BACKEND"
       #       docker pull "$IMAGE_FRONTEND"
-      #
-      #       # Zero-downtime blue-green swap
-      #       docker service update \
-      #         --image "$IMAGE_BACKEND" \
-      #         --update-delay 10s \
-      #         --update-failure-action rollback \
-      #         tech-researcher_backend
-      #
-      #       docker service update \
-      #         --image "$IMAGE_FRONTEND" \
-      #         --update-delay 10s \
-      #         --update-failure-action rollback \
-      #         tech-researcher_frontend
+      - name: Deploy to AWS EC2 via SSH
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host:     ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key:      ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          set -e
+
+          echo "Logging into GHCR..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+            docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          echo "Pulling latest backend image..."
+          docker pull ghcr.io/${{ github.repository_owner }}/tech-researcher-backend:latest
+
+          echo "Stopping old container..."
+          docker stop backend || true
+          docker rm backend || true
+
+          echo "Starting new container..."
+          docker run -d -p 8000:8000 --name backend \
+            ghcr.io/${{ github.repository_owner }}/tech-researcher-backend:latest
+          
+            # Zero-downtime blue-green swap
+            # docker service update \
+            #   --image "$IMAGE_BACKEND" \
+            #   --update-delay 10s \
+            #   --update-failure-action rollback \
+            #   tech-researcher_backend
+      
+            # docker service update \
+            #   --image "$IMAGE_FRONTEND" \
+            #   --update-delay 10s \
+            #   --update-failure-action rollback \
+            #   tech-researcher_frontend
+            script: |
+              set -e
+
+              echo "${{ secrets.GITHUB_TOKEN }}" | \
+                docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+              IMAGE_BACKEND="ghcr.io/${{ github.repository_owner }}/tech-researcher-backend:latest"
+              IMAGE_FRONTEND="ghcr.io/${{ github.repository_owner }}/tech-researcher-frontend:latest"
+
+              # Backend
+              docker stop backend || true
+              docker rm backend || true
+              docker run -d -p 8000:8000 --name backend \
+                "$IMAGE_BACKEND"
+
+              # Frontend
+              docker stop frontend || true
+              docker rm frontend || true
+              docker run -d -p 3000:3000 --name frontend \
+                "$IMAGE_FRONTEND"
 
   # ─── 5. Post-deploy smoke test ──────────────────────────────────────────────
   smoke-test:
