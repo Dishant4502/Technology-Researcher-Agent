@@ -23,13 +23,11 @@ class Settings(BaseSettings):
     research_max_sources: int = Field(default=6)
     knowledge_retention_limit: int = 10
 
-    # 👇 ADD THIS LINE (IMPORTANT FIX)
-    model_config = {"extra": "allow"}
-
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="allow",
     )
 
     @property
