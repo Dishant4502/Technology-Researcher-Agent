@@ -23,17 +23,22 @@ class RagQueryResponse(BaseModel):
     answer: str
     sources: list[RagSource]
 
+file_param = File(...)
 
+# @router.post("/upload")
+# def upload_pdf(file: UploadFile = File(...)) -> dict[str, Any]:
 @router.post("/upload")
-def upload_pdf(file: UploadFile = File(...)) -> dict[str, Any]:
+def upload_pdf(file: UploadFile = file_param) -> dict[str, Any]:
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
     
     try:
         doc_ids = rag_service.ingest_pdf(file)
         return {"message": f"Successfully processed {file.filename}", "chunks": len(doc_ids)}
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/chat", response_model=RagQueryResponse)
@@ -44,5 +49,7 @@ def chat(request: RagQueryRequest) -> RagQueryResponse:
             answer=result["answer"],
             sources=result["sources"]
         )
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
