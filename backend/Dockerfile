@@ -13,8 +13,8 @@ WORKDIR /build
 
 # Install build tools required by some wheels (e.g. crewai C extensions)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        curl \
+    build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip in isolation before installing project deps
@@ -53,7 +53,7 @@ EXPOSE 8000
 
 # Healthcheck – Docker / ECS / Kubernetes will poll this
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
-
+    # CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://3.87.112.2:8000/health')"
 # Use exec form so signals (SIGTERM) propagate correctly
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
