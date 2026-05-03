@@ -204,7 +204,7 @@ jobs: #
     needs: deploy
     steps:
       - name: Wait for service warm-up
-        run: sleep 30
+        run: sleep 100
 
       - name: Health check – backend
         run: |
