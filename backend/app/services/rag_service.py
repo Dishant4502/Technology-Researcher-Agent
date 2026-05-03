@@ -10,7 +10,8 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 
 from app.config import get_settings, KNOWLEDGE_REPO_DIR
 
@@ -31,14 +32,18 @@ class RagService:
         )
         
         # Initialize LLM
-        llm_kwargs: dict[str, Any] = {
-            "api_key": self.settings.llm_api_key,
-            "model": self.settings.llm_model,
-        }
-        if self.settings.llm_base_url:
-            llm_kwargs["base_url"] = self.settings.llm_base_url
+        # llm_kwargs: dict[str, Any] = {
+        #     "api_key": self.settings.llm_api_key,
+        #     "model": self.settings.llm_model,
+        # }
+        # if self.settings.llm_base_url:
+        #     llm_kwargs["base_url"] = self.settings.llm_base_url
             
-        self.llm = ChatOpenAI(**llm_kwargs)
+        # self.llm = ChatOpenAI(**llm_kwargs)
+        self.llm = ChatGroq(
+            groq_api_key=self.settings.llm_api_key,
+            model_name=self.settings.llm_model
+        )
         
         # Prompt for grounding the LLM
         self.prompt_template = ChatPromptTemplate.from_messages([
