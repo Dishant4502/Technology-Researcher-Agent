@@ -21,18 +21,16 @@
 # pytest-asyncio>=0.25,<1
 # httpx>=0.28,<1
 # ruff>=0.9,<1
-
-
 fastapi>=0.115,<1
 uvicorn[standard]>=0.34,<1
 
-# FIXED core stack
 langchain>=0.3,<0.4
-langchain-openai>=0.3,<0.4
+langchain-core>=0.3,<0.4
 langchain-community>=0.3,<0.4
+langchain-chroma>=0.1,<1
 
-# Optional but safer
-crewai>=0.28,<1   # downgrade for stability
+langchain-groq>=0.1,<1
+langchain-huggingface>=0.0.3,<1
 
 chromadb>=0.5,<0.6
 sentence-transformers>=2.6,<3
@@ -40,11 +38,10 @@ sentence-transformers>=2.6,<3
 pypdf>=4,<5
 python-multipart>=0.0.9,<1
 
-# Dev
 pytest>=8,<9
 pytest-cov>=6,<7
 pytest-asyncio>=0.25,<1
 httpx>=0.28,<1
 ruff>=0.9,<1
+
 python-slugify==8.0.4
-langchain-huggingface
