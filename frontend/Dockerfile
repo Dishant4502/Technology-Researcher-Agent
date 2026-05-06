@@ -12,7 +12,8 @@ RUN npm ci --frozen-lockfile
 COPY . .
 
 # Inject the runtime API base at build time (can be overridden via --build-arg)
-ARG VITE_API_BASE=http://localhost:8000/api
+# ARG VITE_API_BASE=http://localhost:8000/api
+ARG VITE_API_BASE=http://3.87.112.2:8000/api
 ENV VITE_API_BASE=${VITE_API_BASE}
 
 RUN npm run build
